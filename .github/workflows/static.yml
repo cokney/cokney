@@ -1,0 +1,53 @@
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import requests
+# Example: Fetch historical price data (Binance API)
+def fetch_crypto_data(symbol, interval, limit):
+    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    response = requests.get(url)
+    data = response.json()
+    df = pd.DataFrame(data, columns=['time', 'open', 'high', 'low', 'close', 'volume', 
+                                     'close_time', 'quote_asset_volume', 'trades', 
+                                     'taker_buy_base', 'taker_buy_quote', 'ignore'])
+    df['close'] = pd.to_numeric(df['close'])
+    return df[['time', 'close']]
+
+crypto_data = fetch_crypto_data("BTCUSDT", "1h", 100)
+print(crypto_data.head())
+# Calculate moving averages and thresholds
+crypto_data['MA20'] = crypto_data['close'].rolling(20).mean()
+crypto_data['MA50'] = crypto_data['close'].rolling(50).mean()
+crypto_data['threshold'] = crypto_data['close'] + (crypto_data['close'] * 0.05)  # 5% threshold
+crypto_data['over'] = (crypto_data['close'] > crypto_data['threshold']).astype(int)
+# Prepare data for training
+X = crypto_data[['MA20', 'MA50']]
+y = crypto_data['over']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Evaluate the model
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {accuracy:.2f}")
+# Prepare data for training
+X = crypto_data[['MA20', 'MA50']]
+y = crypto_data['over']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Evaluate the model
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {accuracy:.2f}")
+
